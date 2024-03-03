@@ -1,4 +1,4 @@
-const User = require("../model/User")
+const User = require('../model/User')
 
 const addUser = async (req, res) => {
   const { rfid, user_id, expired_time } = req.body
@@ -11,20 +11,64 @@ const addUser = async (req, res) => {
     res.status(201).json(savedUser)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: "Internal Server Error" })
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+const updateUser = async (req, res) => {
+  const { id } = req.params
+  const { rfid, user_id, expired_time } = req.body
+
+  try {
+    // Find the user by ID and update the fields
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: id },
+      { rfid, user_id, expired_time },
+      { new: true } // Returns the updated document
+    )
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    res.json(updatedUser)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
   }
 }
 
 const getUser = async (req, res) => {
-  if (!req?.params?.id)
-    return res.status(400).json({ message: "User ID required" })
-  const user = await User.findOne({ _id: req.params.id }).exec()
-  if (!user) {
-    return res
-      .status(204)
-      .json({ message: `User ID ${req.params.id} not found` })
+  if (!req?.params?.rfid) {
+    return res.status(400).json({ message: 'RFID required' })
   }
-  res.json(user)
+
+  const rfid = req.params.rfid
+
+  try {
+    const user = await User.findOne({ rfid }).exec()
+
+    if (!user) {
+      return res
+        .status(204)
+        .json({ message: `User with RFID ${rfid} not found` })
+    }
+
+    res.json(user)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
 }
 
-module.exports = { getUser, addUser }
+const getAllUser = async (req, res) => {
+  const users = await User.find().lean()
+
+  if (!users?.length) {
+    return res.status(400).json({ message: 'No users found' })
+  }
+
+  res.status(200).json({ data: users })
+}
+
+module.exports = { getUser, addUser, getAllUser, updateUser }
